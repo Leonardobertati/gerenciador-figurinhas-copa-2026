@@ -1,0 +1,17 @@
+{
+  "name": "Gerenciador de Figurinhas Copa 2026",
+  "short_name": "Figurinhas 2026",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#101010",
+  "theme_color": "#101010",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
