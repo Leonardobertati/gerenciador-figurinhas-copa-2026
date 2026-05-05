@@ -231,6 +231,7 @@ function renderQuickSection(section, context) {
   const tradeableRepeated = section.stickers.filter((sticker) => getRepeated(sticker) > 0).length;
   const ownedTotal = section.stickers.reduce((sum, sticker) => sum + getTotal(sticker), 0);
   const showSectionActions = context === "album";
+  const showSectionProgress = context !== "repeated";
   return `
     <section class="sticker-section">
       <div class="section-title-row">
@@ -253,10 +254,14 @@ function renderQuickSection(section, context) {
               : ""
           }
         </div>
-        <div class="section-count">
-          <strong>${completed}/${section.total}</strong>
-          ${progressBar(percent)}
-        </div>
+        ${
+          showSectionProgress
+            ? `<div class="section-count">
+                <strong>${completed}/${section.total}</strong>
+                ${progressBar(percent)}
+              </div>`
+            : ""
+        }
       </div>
       <div class="sticker-grid">
         ${visibleStickers.map((sticker) => renderStickerCard(sticker, context)).join("")}
@@ -530,7 +535,10 @@ async function updateSticker(code, operation) {
 
   const next = { ...sticker };
   if (operation === "own") next.colada = true;
-  if (operation === "add-repeat") next.repetidas = getRepeated(next) + 1;
+  if (operation === "add-repeat") {
+    next.colada = true;
+    next.repetidas = getRepeated(next) + 1;
+  }
   if (operation === "remove-repeat") next.repetidas = Math.max(0, getRepeated(next) - 1);
   if (operation === "remove") {
     next.colada = false;
@@ -633,14 +641,14 @@ function openStickerMenu(code) {
   const sticker = findSticker(code);
   if (!sticker) return;
   const repeated = getRepeated(sticker);
-  const owned = isOwned(sticker);
+  const total = getTotal(sticker);
   sheetRoot.innerHTML = `
     <div class="sheet-backdrop" data-action="close-sheet"></div>
     <section class="bottom-sheet" role="dialog" aria-modal="true">
       <div class="sheet-handle"></div>
       <button class="sheet-close-button" data-action="close-sheet" aria-label="Fechar">${icon("x")}</button>
       <h2>${sticker.codigo}</h2>
-      <p>${sticker.secao} · ${owned ? "colada" : "não colada"} · ${repeated} repetida${repeated === 1 ? "" : "s"}</p>
+      <p>${sticker.secao} · Total ${total} · ${repeated} repetida${repeated === 1 ? "" : "s"}</p>
       <div class="sheet-actions">
         <button data-action="sticker-update" data-code="${code}" data-operation="add-repeat">${icon("plus")} Adicionar repetida</button>
         <button data-action="sticker-update" data-code="${code}" data-operation="remove-repeat" ${repeated <= 0 ? "disabled" : ""}>${icon("minus")} Remover repetida</button>
