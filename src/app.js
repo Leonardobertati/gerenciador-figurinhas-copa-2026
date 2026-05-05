@@ -1,5 +1,5 @@
 ﻿import { buildAlbum, buildSections } from "./albumData.js";
-import { StickerStore } from "./storage.js";
+import { applyStatusRow, StickerStore } from "./storage.js";
 
 const TOTAL_STICKERS = 994;
 const store = new StickerStore();
@@ -18,14 +18,16 @@ const state = {
 const app = document.querySelector("#app");
 const toast = document.querySelector("#toast");
 const sheetRoot = document.querySelector("#sheet-root");
+let remoteRenderTimer = null;
 
 init();
 
 async function init() {
   try {
     state.stickers = await store.load(state.stickers);
+    store.subscribe(handleRemoteStatusChange);
   } catch (error) {
-    notify("Não foi possível carregar o Supabase. Usando dados locais neste navegador.");
+    notify("Configure o Supabase para carregar e salvar o álbum online.");
     console.error(error);
   }
 
@@ -34,6 +36,17 @@ async function init() {
   document.addEventListener("input", handleDocumentInput);
   syncRouteFromHash();
   registerServiceWorker();
+}
+
+function handleRemoteStatusChange(row) {
+  state.stickers = state.stickers.map((sticker) =>
+    sticker.codigo === row.codigo ? applyStatusRow(sticker, row) : sticker
+  );
+  if (remoteRenderTimer) return;
+  remoteRenderTimer = window.setTimeout(() => {
+    remoteRenderTimer = null;
+    render();
+  }, 100);
 }
 
 function syncRouteFromHash() {
@@ -759,8 +772,9 @@ function openExportSheet(type) {
 function openFilterSheet() {
   const options = [
     ["todas", "Mostrar todas", "check"],
+    ["repetidas", "Só repetidas", "copy"],
     ["faltantes", "Só faltantes", "filter"],
-    ["completas", "Só completas", "check"]
+    ["completas", "Só possuídas", "check"]
   ];
   sheetRoot.innerHTML = `
     <div class="sheet-backdrop" data-action="close-sheet"></div>
@@ -831,6 +845,7 @@ function getVisibleSections() {
 }
 
 function applyStickerFilter(stickers) {
+  if (state.filterMode === "repetidas") return stickers.filter((sticker) => getRepeated(sticker) > 0);
   if (state.filterMode === "faltantes") return stickers.filter((sticker) => !isOwned(sticker));
   if (state.filterMode === "completas") return stickers.filter(isOwned);
   return stickers;

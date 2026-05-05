@@ -1,132 +1,137 @@
-import { FIXED_USER_ID, SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js";
+import { FIXED_SESSION_ID, SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js";
 
-const LOCAL_KEY = "copa-2026-sticker-progress";
-
-function hasSupabaseConfig() {
-  return SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 20 && window.supabase;
-}
-
-function getLocalProgress() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function setLocalProgress(progress) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(progress));
-}
+const LEGACY_LOCAL_KEY = "copa-2026-sticker-progress";
 
 export class StickerStore {
   constructor() {
     this.client = hasSupabaseConfig()
       ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
       : null;
+    this.channel = null;
   }
 
   get mode() {
-    return this.client ? "supabase" : "local";
+    return this.client ? "supabase" : "unconfigured";
   }
 
   async load(stickers) {
-    if (!this.client) {
-      return applyProgress(stickers, getLocalProgress());
+    this.ensureClient();
+
+    let rows = await this.fetchStatusRows();
+    if (!rows.length) {
+      const migrated = await this.migrateLegacyLocalStorage(stickers);
+      if (migrated) rows = await this.fetchStatusRows();
     }
 
-    let { data, error } = await this.client
-      .from("user_sticker_status")
-      .select("codigo, colada, repetidas, quantidade_total")
-      .eq("user_id", FIXED_USER_ID);
+    return applyProgress(stickers, rowsToProgress(rows));
+  }
 
-    if (error) {
-      const fallback = await this.client
-        .from("user_sticker_status")
-        .select("codigo, quantidade_total")
-        .eq("user_id", FIXED_USER_ID);
-      data = fallback.data;
-      error = fallback.error;
-    }
+  subscribe(onStatusChange) {
+    if (!this.client || this.channel) return;
 
-    if (error) throw error;
-
-    const progress = Object.fromEntries((data || []).map((item) => [item.codigo, item]));
-    return applyProgress(stickers, progress);
+    this.channel = this.client
+      .channel(`album-session-${FIXED_SESSION_ID}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "sticker_status",
+          filter: `session_id=eq.${FIXED_SESSION_ID}`
+        },
+        (payload) => {
+          const row = payload.new || payload.old;
+          if (row?.codigo) onStatusChange(row);
+        }
+      )
+      .subscribe();
   }
 
   async saveSticker(sticker) {
-    if (!this.client) {
-      const progress = getLocalProgress();
-      progress[sticker.codigo] = serializeSticker(sticker);
-      setLocalProgress(progress);
-      return;
-    }
-
-    let { error } = await this.client.from("user_sticker_status").upsert(
-      {
-        user_id: FIXED_USER_ID,
-        codigo: sticker.codigo,
-        colada: sticker.colada,
-        repetidas: sticker.repetidas,
-        quantidade_total: getTotal(sticker),
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "user_id,codigo" }
+    this.ensureClient();
+    const { error } = await this.client.from("sticker_status").upsert(
+      serializeStatus(sticker),
+      { onConflict: "session_id,codigo" }
     );
-
-    if (error) {
-      const fallback = await this.client.from("user_sticker_status").upsert(
-        {
-          user_id: FIXED_USER_ID,
-          codigo: sticker.codigo,
-          quantidade_total: getTotal(sticker),
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: "user_id,codigo" }
-      );
-      error = fallback.error;
-    }
-
     if (error) throw error;
   }
 
   async saveStickers(stickers) {
-    if (!this.client) {
-      const progress = Object.fromEntries(
-        stickers.map((sticker) => [sticker.codigo, serializeSticker(sticker)])
-      );
-      setLocalProgress(progress);
-      return;
-    }
-
-    const rows = stickers.map((sticker) => ({
-      user_id: FIXED_USER_ID,
-      codigo: sticker.codigo,
-      colada: sticker.colada,
-      repetidas: sticker.repetidas,
-      quantidade_total: getTotal(sticker),
-      updated_at: new Date().toISOString()
-    }));
-
-    let { error } = await this.client
-      .from("user_sticker_status")
-      .upsert(rows, { onConflict: "user_id,codigo" });
-
-    if (error) {
-      const fallbackRows = stickers.map((sticker) => ({
-        user_id: FIXED_USER_ID,
-        codigo: sticker.codigo,
-        quantidade_total: getTotal(sticker),
-        updated_at: new Date().toISOString()
-      }));
-      const fallback = await this.client
-        .from("user_sticker_status")
-        .upsert(fallbackRows, { onConflict: "user_id,codigo" });
-      error = fallback.error;
-    }
-
+    this.ensureClient();
+    const rows = stickers.map(serializeStatus);
+    const { error } = await this.client
+      .from("sticker_status")
+      .upsert(rows, { onConflict: "session_id,codigo" });
     if (error) throw error;
   }
+
+  async fetchStatusRows() {
+    const { data, error } = await this.client
+      .from("sticker_status")
+      .select("codigo, possui, repetidas, updated_at")
+      .eq("session_id", FIXED_SESSION_ID);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async migrateLegacyLocalStorage(stickers) {
+    const legacyProgress = readLegacyLocalProgress();
+    const knownCodes = new Set(stickers.map((sticker) => sticker.codigo));
+    const rows = Object.entries(legacyProgress)
+      .filter(([codigo]) => knownCodes.has(codigo))
+      .map(([codigo, progress]) => {
+        const normalized = normalizeProgress(progress);
+        return {
+          session_id: FIXED_SESSION_ID,
+          codigo,
+          possui: normalized.colada,
+          repetidas: normalized.repetidas,
+          updated_at: new Date().toISOString()
+        };
+      })
+      .filter((row) => row.possui || row.repetidas > 0);
+
+    if (!rows.length) return false;
+
+    const { error } = await this.client
+      .from("sticker_status")
+      .upsert(rows, { onConflict: "session_id,codigo" });
+    if (error) throw error;
+    return true;
+  }
+
+  ensureClient() {
+    if (!this.client) {
+      throw new Error("Configure SUPABASE_URL e SUPABASE_ANON_KEY em src/supabase-config.js.");
+    }
+  }
+}
+
+export function applyStatusRow(sticker, row) {
+  return {
+    ...sticker,
+    ...normalizeProgress(row)
+  };
+}
+
+function hasSupabaseConfig() {
+  return (
+    SUPABASE_URL.startsWith("https://") &&
+    SUPABASE_ANON_KEY.length > 20 &&
+    Boolean(window.supabase)
+  );
+}
+
+function readLegacyLocalProgress() {
+  try {
+    return JSON.parse(localStorage.getItem(LEGACY_LOCAL_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function rowsToProgress(rows) {
+  return Object.fromEntries((rows || []).map((item) => [item.codigo, item]));
 }
 
 function applyProgress(stickers, progress) {
@@ -148,32 +153,30 @@ function normalizeProgress(progress) {
     };
   }
 
-  if (typeof progress === "object" && "colada" in progress) {
-    const total = Math.max(0, Number(progress.quantidade_total ?? progress.quantidadeTotal ?? 0));
-    const hasSeparatedValue = Boolean(progress.colada) || Number(progress.repetidas || 0) > 0 || total === 0;
-    const colada = hasSeparatedValue ? Boolean(progress.colada) : total >= 1;
-    const repetidas = hasSeparatedValue
-      ? Math.max(0, Number(progress.repetidas || 0))
-      : Math.max(0, total - 1);
-    return { colada, repetidas, quantidadeTotal: Number(colada) + repetidas };
-  }
-
+  const repetidas = Math.max(0, Number(progress.repetidas || 0));
   const total = Math.max(0, Number(progress.quantidade_total ?? progress.quantidadeTotal ?? 0));
+  const hasSeparatedValue =
+    "possui" in progress ||
+    "colada" in progress ||
+    repetidas > 0 ||
+    total === 0;
+  const colada = hasSeparatedValue
+    ? Boolean(progress.possui ?? progress.colada)
+    : total >= 1;
+
   return {
-    colada: total >= 1,
-    repetidas: Math.max(0, total - 1),
-    quantidadeTotal: total
+    colada,
+    repetidas,
+    quantidadeTotal: Number(colada) + repetidas
   };
 }
 
-function serializeSticker(sticker) {
+function serializeStatus(sticker) {
   return {
-    colada: Boolean(sticker.colada),
+    session_id: FIXED_SESSION_ID,
+    codigo: sticker.codigo,
+    possui: Boolean(sticker.colada),
     repetidas: Math.max(0, Number(sticker.repetidas || 0)),
-    quantidadeTotal: getTotal(sticker)
+    updated_at: new Date().toISOString()
   };
-}
-
-function getTotal(sticker) {
-  return Number(Boolean(sticker.colada)) + Math.max(0, Number(sticker.repetidas || 0));
 }

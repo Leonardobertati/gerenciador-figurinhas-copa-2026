@@ -1,5 +1,3 @@
--- Opcional: o app gera o cadastro do álbum no frontend e salva o progresso em
--- user_sticker_status por codigo, sem exigir carga prévia na tabela stickers.
--- Use scripts/check-album.js para validar que o total gerado é 994.
--- Se quiser popular a tabela stickers para consultas externas, gere INSERTs a
--- partir de src/albumData.js.
+-- O cadastro completo do album ja esta em supabase/schema.sql.
+-- Execute schema.sql no SQL Editor do Supabase para criar tabelas,
+-- relacionamentos, politicas, realtime e os 994 codigos de figurinhas.
