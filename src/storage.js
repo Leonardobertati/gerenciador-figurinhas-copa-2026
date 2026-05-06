@@ -161,7 +161,7 @@ function normalizeProgress(progress) {
     repetidas > 0 ||
     total === 0;
   const colada = hasSeparatedValue
-    ? Boolean(progress.possui ?? progress.colada)
+    ? Boolean(progress.possui ?? progress.colada) || repetidas > 0
     : total >= 1;
 
   return {
@@ -172,11 +172,12 @@ function normalizeProgress(progress) {
 }
 
 function serializeStatus(sticker) {
+  const repetidas = Math.max(0, Number(sticker.repetidas || 0));
   return {
     session_id: FIXED_SESSION_ID,
     codigo: sticker.codigo,
-    possui: Boolean(sticker.colada),
-    repetidas: Math.max(0, Number(sticker.repetidas || 0)),
+    possui: Boolean(sticker.colada) || repetidas > 0,
+    repetidas,
     updated_at: new Date().toISOString()
   };
 }

@@ -876,7 +876,7 @@ function findSticker(code) {
 }
 
 function isOwned(sticker) {
-  if ("colada" in sticker) return Boolean(sticker.colada);
+  if ("colada" in sticker) return Boolean(sticker.colada) || getRepeated(sticker) > 0;
   return Number(sticker.quantidadeTotal || 0) >= 1;
 }
 
