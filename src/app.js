@@ -732,7 +732,7 @@ function renderConferenceResult(result) {
 }
 
 function renderConferenceGroup(title, codes, tone, totalLabel, copyable = false) {
-  const text = codes.map(formatConferenceCode).join("\n");
+  const text = buildConferenceText(codes);
   const total = codes.reduce((sum, item) => sum + getConferenceItemTotal(item), 0);
   return `
     <article class="conference-group ${tone}">
@@ -752,6 +752,23 @@ function renderConferenceGroup(title, codes, tone, totalLabel, copyable = false)
       }
     </article>
   `;
+}
+
+function buildConferenceText(items) {
+  if (!items.length) return "";
+  if (typeof items[0] === "string") return items.join("\n");
+
+  const sections = [];
+  items.forEach((item) => {
+    const current = sections.at(-1);
+    if (!current || current.secao !== item.secao) {
+      sections.push({ secao: item.secao, items: [item] });
+      return;
+    }
+    current.items.push(item);
+  });
+
+  return sections.map((section) => section.items.map(formatConferenceCode).join(", ")).join("\n");
 }
 
 function formatConferenceCode(item) {

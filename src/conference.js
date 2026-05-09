@@ -27,16 +27,18 @@ export function analyzeConferenceInput(input, stickers) {
     }
 
     if (isConferenceStickerOwned(sticker)) {
-      result.existing.push({ codigo, total });
+      result.existing.push(buildConferenceItem(sticker, Math.max(1, total - 1)));
       return;
     }
 
-    result.toPaste.push({ codigo, total: 1 });
+    result.toPaste.push(buildConferenceItem(sticker, 1));
     if (total > 1) {
-      result.existing.push({ codigo, total: total - 1 });
+      result.existing.push(buildConferenceItem(sticker, total - 1));
     }
   });
 
+  result.toPaste.sort(sortConferenceItems);
+  result.existing.sort(sortConferenceItems);
   return result;
 }
 
@@ -55,6 +57,20 @@ function parseConferenceCode(rawCode) {
     codigo: match[1],
     total: Math.max(1, Number(match[2] || 1))
   };
+}
+
+function buildConferenceItem(sticker, total) {
+  return {
+    codigo: sticker.codigo,
+    secao: sticker.secao,
+    ordemSecao: sticker.ordemSecao,
+    ordemAlbum: sticker.ordemAlbum,
+    total
+  };
+}
+
+function sortConferenceItems(a, b) {
+  return a.ordemAlbum - b.ordemAlbum;
 }
 
 function isConferenceStickerOwned(sticker) {
