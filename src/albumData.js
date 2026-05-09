@@ -33,7 +33,7 @@ export const OFFICIAL_SECTIONS = [
   { codigo: "KSA", nome: "Arábia Saudita" },
   { codigo: "URU", nome: "Uruguai" },
   { codigo: "FRA", nome: "França" },
-  { codigo: "SEM", nome: "Senegal" },
+  { codigo: "SEN", nome: "Senegal" },
   { codigo: "IRQ", nome: "Iraque" },
   { codigo: "NOR", nome: "Noruega" },
   { codigo: "ARG", nome: "Argentina" },

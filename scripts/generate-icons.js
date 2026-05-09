@@ -51,7 +51,7 @@ const simpleFlags = {
   KSA: field("#006c35", `<path d="M13 32h38" stroke="#fff" stroke-width="3"/><path d="M16 16h32v5H16z" fill="#fff" opacity=".9"/>`),
   URU: field("#ffffff", `<g>${Array.from({ length: 4 }, (_, i) => `<path d="M0 ${8 + i * 10}h64v5H0z" fill="#0038a8"/>`).join("")}</g><rect width="24" height="24" fill="#fff"/><circle cx="12" cy="12" r="6" fill="#fcd116"/>`),
   FRA: vertical(["#0055a4", "#ffffff", "#ef4135"]),
-  SEM: stripes(["#00853f", "#fdef42", "#e31b23"], "vertical", star(32, 24, 7, "#00853f")),
+  SEN: stripes(["#00853f", "#fdef42", "#e31b23"], "vertical", star(32, 24, 7, "#00853f")),
   IRQ: stripes(["#ce1126", "#ffffff", "#000000"], "horizontal", `<path d="M20 25h24" stroke="#007a3d" stroke-width="4"/>`),
   NOR: field("#ba0c2f", `<path d="M0 17h64v14H0zM20 0h14v48H20z" fill="#fff"/><path d="M0 21h64v6H0zM24 0h6v48h-6z" fill="#00205b"/>`),
   ARG: stripes(["#74acdf", "#ffffff", "#74acdf"], "horizontal", `<circle cx="32" cy="24" r="6" fill="#f6b40e"/>`),

@@ -29,7 +29,7 @@ create table if not exists public.stickers (
 
 create table if not exists public.sticker_status (
   session_id text not null references public.album_sessions(id) on delete cascade,
-  codigo text not null references public.stickers(codigo) on delete cascade,
+  codigo text not null references public.stickers(codigo) on update cascade on delete cascade,
   possui boolean not null default false,
   repetidas integer not null default 0 check (repetidas >= 0),
   quantidade_total integer generated always as ((case when possui then 1 else 0 end) + repetidas) stored,
@@ -109,7 +109,7 @@ team_sections(codigo, nome, ordem_secao, grupo) as (
     ('KSA', 'Arabia Saudita', 33, 'Grupo H'),
     ('URU', 'Uruguai', 34, 'Grupo H'),
     ('FRA', 'Franca', 35, 'Grupo I'),
-    ('SEM', 'Senegal', 36, 'Grupo I'),
+    ('SEN', 'Senegal', 36, 'Grupo I'),
     ('IRQ', 'Iraque', 37, 'Grupo I'),
     ('NOR', 'Noruega', 38, 'Grupo I'),
     ('ARG', 'Argentina', 39, 'Grupo J'),
