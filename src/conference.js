@@ -27,7 +27,7 @@ export function analyzeConferenceInput(input, stickers) {
     }
 
     if (isConferenceStickerOwned(sticker)) {
-      result.existing.push(buildConferenceItem(sticker, Math.max(1, total - 1)));
+      result.existing.push(buildConferenceItem(sticker, total));
       return;
     }
 
