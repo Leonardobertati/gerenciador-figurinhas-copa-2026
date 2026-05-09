@@ -1,7 +1,7 @@
 // Classifies a pasted batch without mutating sticker state or persistence.
 export function analyzeConferenceInput(input, stickers) {
   const stickerMap = new Map(stickers.map((sticker) => [sticker.codigo, sticker]));
-  const seen = new Set();
+  const grouped = new Map();
   const result = {
     toPaste: [],
     existing: [],
@@ -16,9 +16,10 @@ export function analyzeConferenceInput(input, stickers) {
     }
 
     const { codigo, total } = parsed;
-    if (seen.has(codigo)) return;
-    seen.add(codigo);
+    grouped.set(codigo, (grouped.get(codigo) || 0) + total);
+  });
 
+  grouped.forEach((total, codigo) => {
     const sticker = stickerMap.get(codigo);
     if (!sticker) {
       result.invalid.push(codigo);

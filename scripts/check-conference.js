@@ -9,7 +9,7 @@ const stickers = buildAlbum().map((sticker) => {
 
 const bigInput = [
   "BRA1(5) BRA2(3)",
-  "bra3(5), BRA4",
+  "bra3(5), BRA4, KOR8(2), KOR8",
   "FWC12",
   "ABC99",
   "TESTE",
@@ -23,10 +23,11 @@ const failures = [];
 
 if (normalized.join("|") !== "BRA1|BRA2|FWC12") failures.push("Normalizacao deve aceitar espaco, virgula e quebra de linha.");
 if (!hasEntry(result.existing, "BRA1", 5) || !hasEntry(result.existing, "BRA2", 3)) failures.push("Figurinhas ja possuidas devem ir para existentes com a quantidade inteira.");
-if (!hasEntry(result.toPaste, "BRA3", 1) || !hasEntry(result.toPaste, "BRA4", 1) || !hasEntry(result.toPaste, "FWC12", 1)) failures.push("Figurinhas ainda nao possuidas devem ir para colar uma vez.");
-if (!hasEntry(result.existing, "BRA3", 4)) failures.push("Excedente de codigo ainda nao possuido deve ir para repetidas.");
+if (!hasEntry(result.toPaste, "BRA3", 1) || !hasEntry(result.toPaste, "BRA4", 1) || !hasEntry(result.toPaste, "FWC12", 1) || !hasEntry(result.toPaste, "KOR8", 1)) failures.push("Figurinhas ainda nao possuidas devem ir para colar uma vez.");
+if (!hasEntry(result.existing, "BRA3", 5)) failures.push("Excedente de codigo ainda nao possuido deve ir para repetidas com duplicados somados.");
+if (!hasEntry(result.existing, "KOR8", 2)) failures.push("Ocorrencias repetidas do mesmo codigo devem somar quantidades antes da conferencia.");
 if (!result.invalid.includes("ABC99") || !result.invalid.includes("TESTE")) failures.push("Codigos fora do album devem ir para invalidos.");
-if (result.toPaste.filter((item) => item.codigo === "BRA3").length !== 1) failures.push("Duplicados da entrada devem ser ignorados.");
+if (result.toPaste.filter((item) => item.codigo === "BRA3").length !== 1) failures.push("Duplicados da entrada devem gerar uma unica linha agregada.");
 if (result.toPaste.filter((item) => item.codigo.startsWith("MEX")).length !== 20) failures.push("Lista grande deve deduplicar sem perder codigos validos.");
 
 if (failures.length) {
