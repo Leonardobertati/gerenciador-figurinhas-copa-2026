@@ -364,6 +364,17 @@ p {
   background: var(--red);
 }
 
+.batch-mini-card.conference {
+  grid-column: 1 / -1;
+  border-color: rgba(250, 204, 21, 0.36);
+  background: var(--gold-soft);
+}
+
+.batch-mini-card.conference span {
+  background: var(--gold);
+  color: #181100;
+}
+
 .quick-card {
   display: flex;
   min-height: 180px;
@@ -817,6 +828,10 @@ svg {
   width: 100%;
 }
 
+.primary-button.loading {
+  opacity: 0.72;
+}
+
 .secondary-button {
   background: #28282c;
   color: var(--text);
@@ -995,7 +1010,8 @@ svg {
 }
 
 .export-sheet textarea,
-.batch-sheet textarea {
+.batch-sheet textarea,
+.conference-sheet > textarea {
   width: 100%;
   min-height: 260px;
   margin: 18px 0 14px;
@@ -1007,6 +1023,103 @@ svg {
   background: #111113;
   color: var(--text);
   line-height: 1.55;
+}
+
+.conference-sheet {
+  max-height: min(92vh, 820px);
+  overflow-y: auto;
+}
+
+.conference-results {
+  margin-top: 18px;
+}
+
+.conference-loading,
+.conference-empty {
+  padding: 14px;
+  border-radius: 14px;
+  background: #111113;
+  color: var(--muted);
+}
+
+.conference-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.conference-summary h3 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.conference-group {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #171719;
+}
+
+.conference-group.new {
+  border-color: rgba(16, 185, 129, 0.46);
+  background: rgba(16, 185, 129, 0.09);
+}
+
+.conference-group.existing {
+  border-color: rgba(52, 120, 255, 0.46);
+  background: rgba(52, 120, 255, 0.09);
+}
+
+.conference-group.invalid {
+  border-color: rgba(239, 68, 68, 0.46);
+  background: rgba(239, 68, 68, 0.09);
+}
+
+.conference-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.conference-group-head h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.conference-group-head strong {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.conference-group textarea {
+  width: 100%;
+  min-height: 88px;
+  max-height: 240px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  outline: 0;
+  resize: vertical;
+  background: #101012;
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.conference-copy-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  font-weight: 850;
 }
 
 .toast {
@@ -1084,6 +1197,12 @@ svg {
 
   .primary-button {
     width: 100%;
+  }
+
+  .conference-group-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
   }
 }
 

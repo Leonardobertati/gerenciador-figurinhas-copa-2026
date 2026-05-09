@@ -1,4 +1,5 @@
 ﻿import { buildAlbum, buildSections } from "./albumData.js";
+import { analyzeConferenceInput } from "./conference.js";
 import { applyStatusRow, StickerStore } from "./storage.js";
 
 const TOTAL_STICKERS = 994;
@@ -113,6 +114,10 @@ function renderDashboard() {
           ${quickCard("missing", "Faltantes", "Lista para amigos", "filter", "red")}
         </div>
         <div class="batch-mini-grid">
+          <button class="batch-mini-card conference" data-action="open-conference">
+            <span>${icon("checklist")}</span>
+            <strong>Conferência para Colar</strong>
+          </button>
           <button class="batch-mini-card" data-action="open-batch-add">
             <span>${icon("plus")}</span>
             <strong>Lote +</strong>
@@ -466,6 +471,9 @@ async function handleDocumentClick(event) {
   if (action === "close-sheet") closeSheet();
   if (action === "open-batch-add") openBatchSheet("add");
   if (action === "open-batch-remove") openBatchSheet("remove");
+  if (action === "open-conference") openConferenceSheet();
+  if (action === "analyze-conference") analyzeConferenceSheet();
+  if (action === "copy-conference") copyConferenceList();
   if (action === "apply-batch-add") applyBatchAdd();
   if (action === "apply-batch-remove") applyBatchRemove();
   if (action === "quick-card") navigate(target.dataset.route);
@@ -673,6 +681,88 @@ function openBatchSheet(mode) {
       </button>
     </section>
   `;
+}
+
+function openConferenceSheet() {
+  sheetRoot.innerHTML = `
+    <div class="sheet-backdrop" data-action="close-sheet"></div>
+    <section class="bottom-sheet conference-sheet" role="dialog" aria-modal="true">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close-button" data-action="close-sheet" aria-label="Fechar">${icon("x")}</button>
+      <h2>Conferência para Colar</h2>
+      <p>Cole vários códigos separados por espaço, vírgula, quebra de linha ou uma combinação deles. Esta conferência não altera o álbum.</p>
+      <textarea id="conference-input" placeholder="BRA1 BRA2&#10;BRA3, BRA4&#10;FWC12"></textarea>
+      <button class="primary-button full" data-action="analyze-conference">
+        ${icon("checklist")} Analisar Figurinhas
+      </button>
+      <div id="conference-results" class="conference-results" aria-live="polite"></div>
+    </section>
+  `;
+}
+
+function analyzeConferenceSheet() {
+  const input = document.querySelector("#conference-input")?.value || "";
+  const resultRoot = document.querySelector("#conference-results");
+  const button = document.querySelector('[data-action="analyze-conference"]');
+  if (!resultRoot || !button) return;
+
+  button.disabled = true;
+  button.classList.add("loading");
+  button.innerHTML = `${icon("loader")} Analisando...`;
+  resultRoot.innerHTML = `<div class="conference-loading">Analisando códigos...</div>`;
+
+  window.setTimeout(() => {
+    const result = analyzeConferenceInput(input, state.stickers);
+    resultRoot.innerHTML = renderConferenceResult(result);
+    button.disabled = false;
+    button.classList.remove("loading");
+    button.innerHTML = `${icon("checklist")} Analisar Figurinhas`;
+  }, 80);
+}
+
+function renderConferenceResult(result) {
+  return `
+    <section class="conference-summary">
+      <h3>Resultado da Conferência</h3>
+      ${renderConferenceGroup("Figurinhas para colar", result.toPaste, "new", "Total novas", true)}
+      ${renderConferenceGroup("Já existentes no álbum", result.existing, "existing", "Total repetidas")}
+      ${renderConferenceGroup("Códigos inválidos", result.invalid, "invalid", "Total inválidas")}
+    </section>
+  `;
+}
+
+function renderConferenceGroup(title, codes, tone, totalLabel, copyable = false) {
+  const text = codes.join("\n");
+  return `
+    <article class="conference-group ${tone}">
+      <div class="conference-group-head">
+        <h4>${title}</h4>
+        <strong>${totalLabel}: ${codes.length}</strong>
+      </div>
+      ${
+        codes.length
+          ? `<textarea ${copyable ? 'id="conference-copy-text"' : ""} readonly>${escapeHtml(text)}</textarea>`
+          : `<div class="conference-empty">Nenhum código nesta lista.</div>`
+      }
+      ${
+        copyable && codes.length
+          ? `<button class="secondary-button conference-copy-button" data-action="copy-conference">${icon("copy")} Copiar Lista</button>`
+          : ""
+      }
+    </article>
+  `;
+}
+
+async function copyConferenceList() {
+  const textArea = document.querySelector("#conference-copy-text");
+  const text = textArea?.value || "";
+  try {
+    await navigator.clipboard.writeText(text);
+    notify("Lista para colar copiada.");
+  } catch {
+    textArea?.select();
+    notify("Selecione e copie a lista.");
+  }
 }
 
 async function applyBatchAdd() {
@@ -938,7 +1028,9 @@ function icon(name) {
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     minus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
     trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6"/></svg>',
-    x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+    x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    checklist: '<svg viewBox="0 0 24 24"><path d="m9 11 2 2 4-5M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+    loader: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></svg>'
   };
   return icons[name] || "";
 }
