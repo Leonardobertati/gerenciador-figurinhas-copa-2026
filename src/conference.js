@@ -8,22 +8,32 @@ export function analyzeConferenceInput(input, stickers) {
     invalid: []
   };
 
-  normalizeConferenceCodes(input).forEach((code) => {
-    if (seen.has(code)) return;
-    seen.add(code);
+  normalizeConferenceCodes(input).forEach((rawCode) => {
+    const parsed = parseConferenceCode(rawCode);
+    if (!parsed) {
+      result.invalid.push(rawCode);
+      return;
+    }
 
-    const sticker = stickerMap.get(code);
+    const { codigo, total } = parsed;
+    if (seen.has(codigo)) return;
+    seen.add(codigo);
+
+    const sticker = stickerMap.get(codigo);
     if (!sticker) {
-      result.invalid.push(code);
+      result.invalid.push(codigo);
       return;
     }
 
     if (isConferenceStickerOwned(sticker)) {
-      result.existing.push(code);
+      result.existing.push({ codigo, total });
       return;
     }
 
-    result.toPaste.push(code);
+    result.toPaste.push({ codigo, total: 1 });
+    if (total > 1) {
+      result.existing.push({ codigo, total: total - 1 });
+    }
   });
 
   return result;
@@ -35,6 +45,15 @@ export function normalizeConferenceCodes(input) {
     .split(/[\s,]+/)
     .map((code) => code.trim().toUpperCase())
     .filter(Boolean);
+}
+
+function parseConferenceCode(rawCode) {
+  const match = rawCode.match(/^([A-Z]*[0-9]+)(?:\((\d+)\))?$/);
+  if (!match) return null;
+  return {
+    codigo: match[1],
+    total: Math.max(1, Number(match[2] || 1))
+  };
 }
 
 function isConferenceStickerOwned(sticker) {

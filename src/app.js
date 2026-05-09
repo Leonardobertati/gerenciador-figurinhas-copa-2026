@@ -690,8 +690,8 @@ function openConferenceSheet() {
       <div class="sheet-handle"></div>
       <button class="sheet-close-button" data-action="close-sheet" aria-label="Fechar">${icon("x")}</button>
       <h2>Conferência para Colar</h2>
-      <p>Cole vários códigos separados por espaço, vírgula, quebra de linha ou uma combinação deles. Esta conferência não altera o álbum.</p>
-      <textarea id="conference-input" placeholder="BRA1 BRA2&#10;BRA3, BRA4&#10;FWC12"></textarea>
+      <p>Cole vários códigos separados por espaço, vírgula, quebra de linha ou uma combinação deles. Use parênteses para quantidades, como BRA1(5). Esta conferência não altera o álbum.</p>
+      <textarea id="conference-input" placeholder="BRA1(5) BRA2&#10;BRA3, BRA4&#10;FWC12"></textarea>
       <button class="primary-button full" data-action="analyze-conference">
         ${icon("checklist")} Analisar Figurinhas
       </button>
@@ -725,19 +725,20 @@ function renderConferenceResult(result) {
     <section class="conference-summary">
       <h3>Resultado da Conferência</h3>
       ${renderConferenceGroup("Figurinhas para colar", result.toPaste, "new", "Total novas", true)}
-      ${renderConferenceGroup("Já existentes no álbum", result.existing, "existing", "Total repetidas")}
+      ${renderConferenceGroup("Já existentes / repetidas", result.existing, "existing", "Total repetidas")}
       ${renderConferenceGroup("Códigos inválidos", result.invalid, "invalid", "Total inválidas")}
     </section>
   `;
 }
 
 function renderConferenceGroup(title, codes, tone, totalLabel, copyable = false) {
-  const text = codes.join("\n");
+  const text = codes.map(formatConferenceCode).join("\n");
+  const total = codes.reduce((sum, item) => sum + getConferenceItemTotal(item), 0);
   return `
     <article class="conference-group ${tone}">
       <div class="conference-group-head">
         <h4>${title}</h4>
-        <strong>${totalLabel}: ${codes.length}</strong>
+        <strong>${totalLabel}: ${total}</strong>
       </div>
       ${
         codes.length
@@ -751,6 +752,15 @@ function renderConferenceGroup(title, codes, tone, totalLabel, copyable = false)
       }
     </article>
   `;
+}
+
+function formatConferenceCode(item) {
+  if (typeof item === "string") return item;
+  return item.total > 1 ? `${item.codigo} (${item.total})` : item.codigo;
+}
+
+function getConferenceItemTotal(item) {
+  return typeof item === "string" ? 1 : item.total;
 }
 
 async function copyConferenceList() {
