@@ -28,7 +28,7 @@ if (duplicated.length) failures.push(`Códigos duplicados: ${duplicated.join(", 
 
 const stickerMap = new Map(stickers.map((sticker) => [sticker.codigo, sticker]));
 const namedCodes = Object.entries(STICKER_NAMES);
-if (namedCodes.length !== 592) failures.push(`Lote de nomes esperado 592, recebido ${namedCodes.length}`);
+if (namedCodes.length !== 994) failures.push(`Lote de nomes esperado 994, recebido ${namedCodes.length}`);
 namedCodes.forEach(([codigo, nome]) => {
   const sticker = stickerMap.get(codigo);
   if (!sticker) failures.push(`Nome cadastrado para codigo inexistente: ${codigo}`);
