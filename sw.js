@@ -1,4 +1,4 @@
-const CACHE_NAME = "figurinhas-copa-2026-v12";
+const CACHE_NAME = "figurinhas-copa-2026-v13";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "./assets/icons/trophy.svg",
   "./src/app.js",
   "./src/albumData.js",
+  "./src/stickerNames.js",
   "./src/conference.js",
   "./src/storage.js",
   "./src/supabase-config.js",

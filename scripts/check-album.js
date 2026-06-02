@@ -1,4 +1,5 @@
 import { buildAlbum, buildSections } from "../src/albumData.js";
+import { STICKER_NAMES } from "../src/stickerNames.js";
 
 const stickers = buildAlbum();
 const sections = buildSections(stickers);
@@ -24,6 +25,15 @@ const duplicated = stickers
   .map((sticker) => sticker.codigo)
   .filter((code, index, list) => list.indexOf(code) !== index);
 if (duplicated.length) failures.push(`Códigos duplicados: ${duplicated.join(", ")}`);
+
+const stickerMap = new Map(stickers.map((sticker) => [sticker.codigo, sticker]));
+const namedCodes = Object.entries(STICKER_NAMES);
+if (namedCodes.length !== 80) failures.push(`Lote de nomes esperado 80, recebido ${namedCodes.length}`);
+namedCodes.forEach(([codigo, nome]) => {
+  const sticker = stickerMap.get(codigo);
+  if (!sticker) failures.push(`Nome cadastrado para codigo inexistente: ${codigo}`);
+  if (sticker && sticker.nome !== nome) failures.push(`Nome divergente em ${codigo}: ${sticker.nome}`);
+});
 
 if (failures.length) {
   console.error(failures.join("\n"));

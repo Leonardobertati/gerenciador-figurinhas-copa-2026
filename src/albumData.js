@@ -1,3 +1,5 @@
+import { STICKER_NAMES } from "./stickerNames.js";
+
 export const OFFICIAL_SECTIONS = [
   { codigo: "FWC", nome: "Fifa World Cup" },
   { codigo: "MEX", nome: "México" },
@@ -76,6 +78,7 @@ export function buildAlbum() {
     stickers.push({
       id: codigo,
       codigo,
+      nome: STICKER_NAMES[codigo] || "",
       secao,
       grupo,
       ordemSecao,

@@ -313,6 +313,7 @@ function renderStickerCard(sticker, context) {
       aria-label="Figurinha ${sticker.codigo}, colada ${owned ? "sim" : "não"}, repetidas ${repeated}"
     >
       <span class="sticker-code">${sticker.codigo}</span>
+      ${sticker.nome ? `<span class="sticker-name">${escapeHtml(sticker.nome)}</span>` : ""}
       ${repeated ? `<span class="repeat-badge">+${repeated}</span>` : ""}
     </button>
   `;
@@ -325,12 +326,13 @@ function renderSearchResult(sticker) {
     <article class="search-result">
       <button class="sticker-card ${owned ? "owned" : ""} ${repeated ? "repeated" : ""}" data-code="${sticker.codigo}" data-context="search">
         <span class="sticker-code">${sticker.codigo}</span>
+        ${sticker.nome ? `<span class="sticker-name">${escapeHtml(sticker.nome)}</span>` : ""}
         ${repeated ? `<span class="repeat-badge">+${repeated}</span>` : ""}
       </button>
       <div>
         <h2>${sticker.codigo}</h2>
-        <p>${sticker.secao}</p>
-        <span>${owned ? "Colada" : "Não colada"} · Repetidas ${repeated} · Total ${getTotal(sticker)}</span>
+        <p>${sticker.nome || sticker.secao}</p>
+        <span>${sticker.nome ? `${sticker.secao} · ` : ""}${owned ? "Colada" : "Não colada"} · Repetidas ${repeated} · Total ${getTotal(sticker)}</span>
       </div>
     </article>
   `;
@@ -351,7 +353,7 @@ function getSearchResults(query) {
   }
 
   return state.stickers.filter((sticker) => {
-    const fields = [sticker.codigo, sticker.secao, sticker.grupo].map(normalizeSearch);
+    const fields = [sticker.codigo, sticker.nome, sticker.secao, sticker.grupo].map(normalizeSearch);
     return fields.some((field) => field.includes(normalizedQuery));
   });
 }
@@ -656,7 +658,7 @@ function openStickerMenu(code) {
       <div class="sheet-handle"></div>
       <button class="sheet-close-button" data-action="close-sheet" aria-label="Fechar">${icon("x")}</button>
       <h2>${sticker.codigo}</h2>
-      <p>${sticker.secao} · Total ${total} · ${repeated} repetida${repeated === 1 ? "" : "s"}</p>
+      <p>${sticker.nome ? `${escapeHtml(sticker.nome)} · ` : ""}${sticker.secao} · Total ${total} · ${repeated} repetida${repeated === 1 ? "" : "s"}</p>
       <div class="sheet-actions">
         <button data-action="sticker-update" data-code="${code}" data-operation="add-repeat">${icon("plus")} Adicionar repetida</button>
         <button data-action="sticker-update" data-code="${code}" data-operation="remove-repeat" ${repeated <= 0 ? "disabled" : ""}>${icon("minus")} Remover repetida</button>
