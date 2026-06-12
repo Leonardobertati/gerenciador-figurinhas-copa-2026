@@ -453,8 +453,8 @@ function getSectionIcon(section) {
   const sectionCode = getSectionCode(section);
   if (sectionCode === "CC") return iconImage("assets/icons/coke.svg", "Coca-Cola", "icon-image");
   if (sectionCode === "FWC") {
-    const iconName = section.nome.includes("Parte 1") ? "trophy" : "stadium";
-    const label = section.nome.includes("Parte 1") ? "Taça da Copa" : "Estádio de futebol";
+    const iconName = section.nome.includes("Parte 1") ? "stadium" : "trophy";
+    const label = section.nome.includes("Parte 1") ? "Estádio de futebol" : "Taça da Copa";
     return iconImage(`assets/icons/${iconName}.svg`, label, "icon-image");
   }
 
