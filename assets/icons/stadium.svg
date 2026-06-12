@@ -1,1 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="32" fill="#172033"/><ellipse cx="64" cy="75" rx="48" ry="30" fill="#e5eefb"/><ellipse cx="64" cy="75" rx="35" ry="20" fill="#1f8f5f"/><path d="M18 72c5-28 24-44 46-44s41 16 46 44H96c-5-18-18-29-32-29S37 54 32 72H18Z" fill="#3b82f6"/><path d="M34 70h60v10H34z" fill="#0f172a" opacity=".35"/><path d="M48 70c3-8 9-12 16-12s13 4 16 12" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="sky" x1="22" x2="106" y1="20" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset=".55" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="field" x1="33" x2="95" y1="68" y2="103" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#15803d"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="32" fill="#101827"/>
+  <path d="M18 68c7-27 25-43 46-43s39 16 46 43v20H18Z" fill="url(#sky)"/>
+  <path d="M26 69c7-21 22-33 38-33s31 12 38 33H88c-5-13-14-20-24-20S45 56 40 69Z" fill="#dbeafe"/>
+  <path d="M22 71h84v15H22Z" fill="#eff6ff"/>
+  <path d="M28 74h72v8H28Z" fill="#93c5fd"/>
+  <ellipse cx="64" cy="86" rx="44" ry="25" fill="#e5edf7"/>
+  <ellipse cx="64" cy="87" rx="32" ry="16" fill="url(#field)"/>
+  <path d="M43 86h42M64 72v30" stroke="#bbf7d0" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+  <path d="M52 80c5-4 19-4 24 0" fill="none" stroke="#bbf7d0" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+  <g fill="#facc15">
+    <circle cx="35" cy="39" r="3"/>
+    <circle cx="47" cy="32" r="3"/>
+    <circle cx="64" cy="29" r="3"/>
+    <circle cx="81" cy="32" r="3"/>
+    <circle cx="93" cy="39" r="3"/>
+  </g>
+  <path d="M24 66c8 7 22 11 40 11s32-4 40-11" fill="none" stroke="#bfdbfe" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+</svg>

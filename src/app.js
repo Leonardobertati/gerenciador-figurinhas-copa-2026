@@ -5,6 +5,59 @@ import { applyStatusRow, StickerStore } from "./storage.js";
 const TOTAL_STICKERS = 994;
 const store = new StickerStore();
 
+const SECTION_THEMES = {
+  FWC: { primary: "#3478ff", secondary: "#facc15" },
+  CC: { primary: "#ef4444", secondary: "#ffffff" },
+  MEX: { primary: "#006847", secondary: "#ce1126" },
+  RSA: { primary: "#007a4d", secondary: "#ffb612" },
+  KOR: { primary: "#c60c30", secondary: "#003478" },
+  CZE: { primary: "#11457e", secondary: "#d7141a" },
+  CAN: { primary: "#d52b1e", secondary: "#ffffff" },
+  BIH: { primary: "#002f6c", secondary: "#f7d116" },
+  QAT: { primary: "#8a1538", secondary: "#ffffff" },
+  SUI: { primary: "#d52b1e", secondary: "#ffffff" },
+  BRA: { primary: "#009b3a", secondary: "#ffdf00" },
+  MAR: { primary: "#c1272d", secondary: "#006233" },
+  HAI: { primary: "#00209f", secondary: "#d21034" },
+  SCO: { primary: "#005eb8", secondary: "#ffffff" },
+  USA: { primary: "#3c3b6e", secondary: "#b22234" },
+  PAR: { primary: "#d52b1e", secondary: "#0038a8" },
+  AUS: { primary: "#012169", secondary: "#e4002b" },
+  TUR: { primary: "#e30a17", secondary: "#ffffff" },
+  GER: { primary: "#dd0000", secondary: "#ffce00" },
+  CUW: { primary: "#002b7f", secondary: "#f9e814" },
+  CIV: { primary: "#f77f00", secondary: "#009e60" },
+  ECU: { primary: "#034ea2", secondary: "#ffdd00" },
+  NED: { primary: "#ff7f00", secondary: "#21468b" },
+  JPN: { primary: "#bc002d", secondary: "#ffffff" },
+  SWE: { primary: "#006aa7", secondary: "#fecc00" },
+  TUN: { primary: "#e70013", secondary: "#ffffff" },
+  BEL: { primary: "#fae042", secondary: "#ed2939" },
+  EGY: { primary: "#ce1126", secondary: "#c9a227" },
+  IRN: { primary: "#239f40", secondary: "#da0000" },
+  NZL: { primary: "#012169", secondary: "#cc142b" },
+  ESP: { primary: "#aa151b", secondary: "#f1bf00" },
+  CPV: { primary: "#003893", secondary: "#cf2027" },
+  KSA: { primary: "#006c35", secondary: "#ffffff" },
+  URU: { primary: "#0038a8", secondary: "#fcd116" },
+  FRA: { primary: "#0055a4", secondary: "#ef4135" },
+  SEN: { primary: "#00853f", secondary: "#fdef42" },
+  IRQ: { primary: "#ce1126", secondary: "#007a3d" },
+  NOR: { primary: "#ba0c2f", secondary: "#00205b" },
+  ARG: { primary: "#74acdf", secondary: "#f6b40e" },
+  ALG: { primary: "#006233", secondary: "#d21034" },
+  AUT: { primary: "#ed2939", secondary: "#ffffff" },
+  JOR: { primary: "#ce1126", secondary: "#007a3d" },
+  POR: { primary: "#006600", secondary: "#ff0000" },
+  COD: { primary: "#007fff", secondary: "#ce1021" },
+  UZB: { primary: "#1eb5e5", secondary: "#009b58" },
+  COL: { primary: "#003893", secondary: "#fcd116" },
+  ENG: { primary: "#ce1124", secondary: "#ffffff" },
+  CRO: { primary: "#171796", secondary: "#ff0000" },
+  GHA: { primary: "#006b3f", secondary: "#fcd116" },
+  PAN: { primary: "#005293", secondary: "#d21034" }
+};
+
 const state = {
   stickers: buildAlbum(),
   route: "dashboard",
@@ -231,8 +284,9 @@ function renderQuickSection(section, context) {
   const ownedTotal = section.stickers.reduce((sum, sticker) => sum + getTotal(sticker), 0);
   const showSectionActions = context === "album";
   const showSectionProgress = context !== "repeated";
+  const themeStyle = getSectionThemeStyle(section);
   return `
-    <section class="sticker-section">
+    <section class="sticker-section" style="${escapeAttr(themeStyle)}">
       <div class="section-title-row">
         <div class="section-marker"></div>
         <div class="section-heading-icon" aria-hidden="true">${getSectionIcon(section)}</div>
@@ -257,7 +311,7 @@ function renderQuickSection(section, context) {
           showSectionProgress
             ? `<div class="section-count">
                 <strong>${completed}/${section.total}</strong>
-                ${progressBar(percent)}
+                ${progressBar(percent, "section")}
               </div>`
             : ""
         }
@@ -275,14 +329,14 @@ function renderSectionList(sections) {
       ${sections.map((section) => {
         const completed = section.stickers.filter(isOwned).length;
         const percent = getPercent(completed, section.total);
-        const tone = percent >= 75 ? "green" : percent >= 40 ? "blue" : percent > 0 ? "red" : "muted";
+        const themeStyle = getSectionThemeStyle(section);
         return `
-          <button class="section-card" data-action="open-section" data-section="${escapeAttr(section.nome)}">
+          <button class="section-card" data-action="open-section" data-section="${escapeAttr(section.nome)}" style="${escapeAttr(themeStyle)}">
             <div class="section-icon">${getSectionIcon(section)}</div>
             <div class="section-info">
               <h2>${section.nome}</h2>
               <p>${section.grupo || section.codigo}</p>
-              ${progressBar(percent, tone)}
+              ${progressBar(percent, "section")}
             </div>
             <div class="section-meta">
               <strong>${percent}%</strong>
@@ -299,11 +353,13 @@ function renderSectionList(sections) {
 function renderStickerCard(sticker, context) {
   const repeated = getRepeated(sticker);
   const owned = isOwned(sticker);
+  const themeStyle = getStickerThemeStyle(sticker);
   return `
     <button
       class="sticker-card ${owned ? "owned" : ""} ${repeated ? "repeated" : ""}"
       data-code="${sticker.codigo}"
       data-context="${context}"
+      style="${escapeAttr(themeStyle)}"
       aria-label="Figurinha ${sticker.codigo}, colada ${owned ? "sim" : "não"}, repetidas ${repeated}"
     >
       <span class="sticker-code">${sticker.codigo}</span>
@@ -316,9 +372,10 @@ function renderStickerCard(sticker, context) {
 function renderSearchResult(sticker) {
   const repeated = getRepeated(sticker);
   const owned = isOwned(sticker);
+  const themeStyle = getStickerThemeStyle(sticker);
   return `
-    <article class="search-result">
-      <button class="sticker-card ${owned ? "owned" : ""} ${repeated ? "repeated" : ""}" data-code="${sticker.codigo}" data-context="search">
+    <article class="search-result" style="${escapeAttr(themeStyle)}">
+      <button class="sticker-card ${owned ? "owned" : ""} ${repeated ? "repeated" : ""}" data-code="${sticker.codigo}" data-context="search" style="${escapeAttr(themeStyle)}">
         <span class="sticker-code">${sticker.codigo}</span>
         ${sticker.nome ? `<span class="sticker-name">${escapeHtml(sticker.nome)}</span>` : ""}
         ${repeated ? `<span class="repeat-badge">+${repeated}</span>` : ""}
@@ -394,14 +451,14 @@ function getSearchResults(query) {
 
 function getSectionIcon(section) {
   const sectionCode = getSectionCode(section);
-  if (sectionCode === "CC") return iconImage("assets/icons/coke.svg", "Coca-Cola");
+  if (sectionCode === "CC") return iconImage("assets/icons/coke.svg", "Coca-Cola", "icon-image");
   if (sectionCode === "FWC") {
     const iconName = section.nome.includes("Parte 1") ? "trophy" : "stadium";
     const label = section.nome.includes("Parte 1") ? "Taça da Copa" : "Estádio de futebol";
-    return iconImage(`assets/icons/${iconName}.svg`, label);
+    return iconImage(`assets/icons/${iconName}.svg`, label, "icon-image");
   }
 
-  return iconImage(`assets/flags/${sectionCode}.svg`, `Bandeira ${section.nome}`);
+  return iconImage(`assets/flags/${sectionCode}.svg`, `Bandeira ${section.nome}`, "flag-image");
 }
 
 function getSectionCode(section) {
@@ -411,8 +468,46 @@ function getSectionCode(section) {
   return firstCode.match(/^[A-Z]+/)?.[0] || section.codigo || "";
 }
 
-function iconImage(src, alt) {
-  return `<img src="${src}" alt="${escapeAttr(alt)}" loading="lazy" />`;
+function getStickerSectionCode(sticker) {
+  if (sticker.codigo === "00" || sticker.codigo.startsWith("FWC")) return "FWC";
+  if (sticker.codigo.startsWith("CC")) return "CC";
+  return sticker.codigo.match(/^[A-Z]+/)?.[0] || "";
+}
+
+function getSectionThemeStyle(sectionOrCode) {
+  const code = typeof sectionOrCode === "string" ? sectionOrCode : getSectionCode(sectionOrCode);
+  const theme = SECTION_THEMES[code] || SECTION_THEMES.FWC;
+  const primaryRgb = hexToRgb(theme.primary);
+  const secondaryRgb = hexToRgb(theme.secondary);
+  return [
+    `--section-accent:${theme.primary}`,
+    `--section-accent-rgb:${primaryRgb}`,
+    `--section-secondary:${theme.secondary}`,
+    `--section-secondary-rgb:${secondaryRgb}`,
+    `--section-badge-text:${getReadableTextColor(theme.secondary)}`
+  ].join(";");
+}
+
+function getStickerThemeStyle(sticker) {
+  return getSectionThemeStyle(getStickerSectionCode(sticker));
+}
+
+function hexToRgb(hex) {
+  const value = hex.replace("#", "");
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+  return `${red},${green},${blue}`;
+}
+
+function getReadableTextColor(hex) {
+  const [red, green, blue] = hexToRgb(hex).split(",").map(Number);
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance > 150 ? "#111827" : "#ffffff";
+}
+
+function iconImage(src, alt, className) {
+  return `<img class="${escapeAttr(className)}" src="${src}" alt="${escapeAttr(alt)}" loading="lazy" />`;
 }
 
 function topBar(title, back) {
