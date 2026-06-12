@@ -244,6 +244,156 @@ p {
   background: #18181a;
 }
 
+.album-manager {
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--panel);
+}
+
+.album-manager-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.album-manager-head span,
+.album-select-button small,
+.album-name-field span {
+  color: var(--muted);
+}
+
+.album-manager-head h2 {
+  margin-top: 4px;
+  font-size: 1.45rem;
+  line-height: 1.05;
+}
+
+.album-new-button {
+  min-height: 44px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+}
+
+.album-list {
+  display: grid;
+  gap: 10px;
+}
+
+.album-option {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.album-select-button {
+  display: flex;
+  min-width: 0;
+  min-height: 62px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #151518;
+  text-align: left;
+}
+
+.album-option.active .album-select-button {
+  border-color: rgba(52, 120, 255, 0.58);
+  background: var(--blue-soft);
+}
+
+.album-select-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 13px;
+  background: #28282c;
+  color: var(--blue);
+}
+
+.album-option.active .album-select-icon {
+  background: var(--blue);
+  color: white;
+}
+
+.album-select-button strong,
+.album-select-button small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album-select-button strong {
+  font-size: 1rem;
+}
+
+.album-select-button small {
+  margin-top: 3px;
+  font-weight: 800;
+}
+
+.album-option-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.album-option-actions button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #151518;
+  color: var(--muted);
+}
+
+.album-option-actions button:last-child {
+  color: #fca5a5;
+}
+
+.album-sheet {
+  max-height: min(92vh, 620px);
+  overflow-y: auto;
+}
+
+.album-name-field {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 14px;
+}
+
+.album-name-field span {
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.album-name-field input {
+  width: 100%;
+  height: 54px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  outline: 0;
+  background: #111113;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.album-name-field input:focus {
+  border-color: rgba(52, 120, 255, 0.7);
+}
+
 .stat {
   display: grid;
   place-items: center;
@@ -1262,6 +1412,29 @@ svg {
 
   .quick-card strong {
     font-size: 1.32rem;
+  }
+
+  .album-manager-head,
+  .album-option {
+    grid-template-columns: 1fr;
+  }
+
+  .album-manager-head {
+    display: grid;
+  }
+
+  .album-new-button {
+    width: 100%;
+  }
+
+  .album-option-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .album-option-actions button {
+    width: 100%;
+    height: 46px;
   }
 
   .reset-actions {

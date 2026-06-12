@@ -1,6 +1,15 @@
 ﻿import { buildAlbum, buildSections } from "./albumData.js";
 import { analyzeConferenceInput } from "./conference.js";
-import { applyStatusRow, StickerStore } from "./storage.js";
+import {
+  applyStatusRow,
+  DEFAULT_ALBUM_ID,
+  getFallbackAlbums,
+  getStoredActiveAlbumId,
+  normalizeAlbumName,
+  sortAlbums,
+  StickerStore,
+  storeActiveAlbumId
+} from "./storage.js";
 
 const TOTAL_STICKERS = 994;
 const store = new StickerStore();
@@ -60,6 +69,8 @@ const SECTION_THEMES = {
 
 const state = {
   stickers: buildAlbum(),
+  albums: getFallbackAlbums(),
+  activeAlbumId: DEFAULT_ALBUM_ID,
   route: "dashboard",
   viewMode: "rapido",
   sortAZ: false,
@@ -78,8 +89,10 @@ init();
 
 async function init() {
   try {
-    state.stickers = await store.load(state.stickers);
-    store.subscribe(handleRemoteStatusChange);
+    state.albums = await store.loadAlbums();
+    state.activeAlbumId = getStoredActiveAlbumId(state.albums);
+    state.stickers = await store.load(buildAlbum(), state.activeAlbumId);
+    await store.subscribe(state.activeAlbumId, handleRemoteStatusChange);
   } catch (error) {
     notify("Configure o Supabase para carregar e salvar o álbum online.");
     console.error(error);
@@ -93,6 +106,7 @@ async function init() {
 }
 
 function handleRemoteStatusChange(row) {
+  if (row.session_id && row.session_id !== state.activeAlbumId) return;
   state.stickers = state.stickers.map((sticker) =>
     sticker.codigo === row.codigo ? applyStatusRow(sticker, row) : sticker
   );
@@ -152,6 +166,8 @@ function renderDashboard() {
         </div>
       </section>
 
+      ${renderAlbumManager()}
+
       <section class="stats-card">
         ${statItem(stats.coladas, "Coladas", "blue")}
         ${statItem(stats.faltando, "Faltando", "red")}
@@ -190,6 +206,47 @@ function renderDashboard() {
         </div>
       </section>
     </main>
+  `;
+}
+
+function renderAlbumManager() {
+  const activeAlbum = getActiveAlbum();
+  const disabled = state.busy ? "disabled" : "";
+  return `
+    <section class="album-manager">
+      <div class="album-manager-head">
+        <div>
+          <span>Álbum ativo</span>
+          <h2>${escapeHtml(activeAlbum.nome)}</h2>
+        </div>
+        <button class="primary-button album-new-button" data-action="open-album-form" data-album-mode="create" ${disabled}>
+          ${icon("plus")} Novo álbum
+        </button>
+      </div>
+      <div class="album-list" aria-label="Meus álbuns">
+        ${state.albums.map((album) => renderAlbumOption(album)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAlbumOption(album) {
+  const isActive = album.id === state.activeAlbumId;
+  const disabled = state.busy ? "disabled" : "";
+  return `
+    <article class="album-option ${isActive ? "active" : ""}">
+      <button class="album-select-button" data-action="select-album" data-album-id="${escapeAttr(album.id)}" ${disabled} aria-pressed="${isActive}">
+        <span class="album-select-icon">${icon(isActive ? "check" : "book")}</span>
+        <span>
+          <strong>${escapeHtml(album.nome)}</strong>
+          <small>${isActive ? "Selecionado" : "Selecionar"}</small>
+        </span>
+      </button>
+      <div class="album-option-actions">
+        <button data-action="open-album-form" data-album-mode="edit" data-album-id="${escapeAttr(album.id)}" aria-label="Editar ${escapeAttr(album.nome)}" ${disabled}>${icon("edit")}</button>
+        <button data-action="open-album-delete" data-album-id="${escapeAttr(album.id)}" aria-label="Excluir ${escapeAttr(album.nome)}" ${disabled}>${icon("trash")}</button>
+      </div>
+    </article>
   `;
 }
 
@@ -603,6 +660,11 @@ async function handleDocumentClick(event) {
   if (action === "open-batch-add") openBatchSheet("add");
   if (action === "open-batch-remove") openBatchSheet("remove");
   if (action === "open-conference") openConferenceSheet();
+  if (action === "select-album") await selectAlbum(target.dataset.albumId);
+  if (action === "open-album-form") openAlbumForm(target.dataset.albumMode, target.dataset.albumId);
+  if (action === "save-album") await saveAlbumForm(target);
+  if (action === "open-album-delete") openDeleteAlbumSheet(target.dataset.albumId);
+  if (action === "confirm-delete-album") await deleteAlbum(target.dataset.albumId);
   if (action === "analyze-conference") analyzeConferenceSheet();
   if (action === "copy-conference") copyConferenceList();
   if (action === "apply-batch-add") applyBatchAdd();
@@ -666,6 +728,149 @@ function attachStickerCardEvents() {
       }
     });
   });
+}
+
+async function selectAlbum(albumId, message = "Álbum selecionado.") {
+  if (!albumId || albumId === state.activeAlbumId || state.busy) return;
+  const previousAlbumId = state.activeAlbumId;
+  const previousStickers = state.stickers;
+  state.busy = true;
+  state.activeAlbumId = albumId;
+  state.stickers = buildAlbum();
+  render();
+
+  try {
+    state.stickers = await store.load(buildAlbum(), albumId);
+    await store.subscribe(albumId, handleRemoteStatusChange);
+    storeActiveAlbumId(albumId);
+    notify(message);
+  } catch (error) {
+    state.activeAlbumId = previousAlbumId;
+    state.stickers = previousStickers;
+    await store.subscribe(previousAlbumId, handleRemoteStatusChange);
+    console.error(error);
+    notify("Falha ao trocar de álbum.");
+  } finally {
+    state.busy = false;
+    render();
+  }
+}
+
+function openAlbumForm(mode = "create", albumId = "") {
+  const isEdit = mode === "edit";
+  const album = isEdit ? findAlbum(albumId) : null;
+  if (isEdit && !album) return;
+  const title = isEdit ? "Editar álbum" : "Novo álbum";
+  const buttonLabel = isEdit ? "Salvar nome" : "Criar álbum";
+  sheetRoot.innerHTML = `
+    <div class="sheet-backdrop" data-action="close-sheet"></div>
+    <section class="bottom-sheet album-sheet" role="dialog" aria-modal="true">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close-button" data-action="close-sheet" aria-label="Fechar">${icon("x")}</button>
+      <h2>${title}</h2>
+      <p>${isEdit ? "Renomeie este álbum sem alterar as figurinhas já salvas." : "Crie um álbum zerado para controlar outra coleção separada."}</p>
+      <label class="album-name-field">
+        <span>Nome do álbum</span>
+        <input id="album-name-input" value="${escapeAttr(album?.nome || "")}" placeholder="Ex.: Álbum do João" maxlength="64" autocomplete="off" />
+      </label>
+      <button class="primary-button full" data-action="save-album" data-album-mode="${isEdit ? "edit" : "create"}" data-album-id="${escapeAttr(album?.id || "")}">
+        ${icon(isEdit ? "edit" : "plus")} ${buttonLabel}
+      </button>
+    </section>
+  `;
+  const input = document.querySelector("#album-name-input");
+  input?.focus();
+  input?.select();
+}
+
+async function saveAlbumForm(button) {
+  if (state.busy) return;
+  const input = document.querySelector("#album-name-input");
+  const name = normalizeAlbumName(input?.value);
+  if (!name) {
+    notify("Informe um nome para o álbum.");
+    input?.focus();
+    return;
+  }
+
+  const mode = button.dataset.albumMode;
+  const albumId = button.dataset.albumId;
+  button.disabled = true;
+  button.classList.add("loading");
+  button.innerHTML = `${icon("loader")} Salvando...`;
+
+  try {
+    if (mode === "edit") {
+      const album = await store.renameAlbum(albumId, name);
+      state.albums = sortAlbums(state.albums.map((item) => (item.id === album.id ? album : item)));
+      closeSheet();
+      render();
+      notify("Nome do álbum atualizado.");
+      return;
+    }
+
+    const album = await store.createAlbum(name);
+    state.albums = sortAlbums([...state.albums, album]);
+    closeSheet();
+    await selectAlbum(album.id, "Álbum criado e selecionado.");
+  } catch (error) {
+    console.error(error);
+    notify("Falha ao salvar o álbum.");
+  } finally {
+    button.disabled = false;
+    button.classList.remove("loading");
+  }
+}
+
+function openDeleteAlbumSheet(albumId) {
+  const album = findAlbum(albumId);
+  if (!album) return;
+  if (state.albums.length <= 1) {
+    notify("Crie outro álbum antes de excluir o único álbum.");
+    return;
+  }
+
+  sheetRoot.innerHTML = `
+    <div class="sheet-backdrop" data-action="close-sheet"></div>
+    <section class="bottom-sheet album-sheet" role="dialog" aria-modal="true">
+      <div class="sheet-handle"></div>
+      <button class="sheet-close-button" data-action="close-sheet" aria-label="Fechar">${icon("x")}</button>
+      <h2>Excluir álbum</h2>
+      <p>Isso apaga o álbum <strong>${escapeHtml(album.nome)}</strong> e todo o progresso salvo nele. Os outros álbuns não serão alterados.</p>
+      <div class="sheet-actions">
+        <button data-action="close-sheet">${icon("x")} Cancelar</button>
+        <button class="danger" data-action="confirm-delete-album" data-album-id="${escapeAttr(album.id)}">${icon("trash")} Excluir álbum</button>
+      </div>
+    </section>
+  `;
+}
+
+async function deleteAlbum(albumId) {
+  const album = findAlbum(albumId);
+  if (!album || state.busy || state.albums.length <= 1) return;
+
+  const nextAlbum = state.albums.find((item) => item.id !== albumId);
+  state.busy = true;
+  try {
+    await store.deleteAlbum(albumId);
+    state.albums = sortAlbums(state.albums.filter((item) => item.id !== albumId));
+    closeSheet();
+
+    if (state.activeAlbumId === albumId && nextAlbum) {
+      state.activeAlbumId = nextAlbum.id;
+      state.stickers = await store.load(buildAlbum(), nextAlbum.id);
+      await store.subscribe(nextAlbum.id, handleRemoteStatusChange);
+      storeActiveAlbumId(nextAlbum.id);
+    }
+
+    notify("Álbum excluído.");
+  } catch (error) {
+    console.error(error);
+    notify("Falha ao excluir o álbum.");
+  } finally {
+    state.busy = false;
+    render();
+  }
 }
 
 async function updateSticker(code, operation) {
@@ -1119,6 +1324,14 @@ function getStats() {
   );
 }
 
+function getActiveAlbum() {
+  return findAlbum(state.activeAlbumId) || state.albums[0] || getFallbackAlbums()[0];
+}
+
+function findAlbum(albumId) {
+  return state.albums.find((album) => album.id === albumId);
+}
+
 function findSticker(code) {
   return state.stickers.find((sticker) => sticker.codigo === code);
 }
@@ -1185,6 +1398,7 @@ function icon(name) {
     check: '<svg viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>',
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     minus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+    edit: '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
     trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6"/></svg>',
     x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     checklist: '<svg viewBox="0 0 24 24"><path d="m9 11 2 2 4-5M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>',
