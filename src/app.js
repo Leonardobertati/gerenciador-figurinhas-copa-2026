@@ -157,8 +157,8 @@ function renderAlbum() {
 }
 
 function renderSearch() {
-  const term = state.query.trim().toUpperCase();
-  const results = getSearchResults(state.query);
+  const term = state.query.trim();
+  const searchView = getSearchView(state.query);
 
   return `
     <main class="screen">
@@ -169,13 +169,7 @@ function renderSearch() {
           <input id="search-input" value="${escapeHtml(state.query)}" placeholder="Digite: MEX1, grupo A, FWC, CC14" autocomplete="off" />
         </label>
       </section>
-      <section class="result-list">
-        ${
-          term
-            ? results.map(renderSearchResult).join("") || emptyState("Nenhuma figurinha encontrada.")
-            : emptyState("Busque pelo código da figurinha.")
-        }
-      </section>
+      ${renderSearchContent(searchView, term)}
       ${bottomNav()}
     </main>
   `;
@@ -338,19 +332,59 @@ function renderSearchResult(sticker) {
   `;
 }
 
+function renderSearchContent(searchView, term) {
+  if (!term) return emptyState("Busque pelo código da figurinha ou pelo país.");
+  if (searchView.type === "sections") {
+    return searchView.sections.map((section) => renderQuickSection(section, "search-section")).join("");
+  }
+
+  return `
+    <section class="result-list">
+      ${searchView.stickers.map(renderSearchResult).join("") || emptyState("Nenhuma figurinha encontrada.")}
+    </section>
+  `;
+}
+
+// Decide se a busca deve abrir uma seção completa ou uma lista de figurinhas.
+function getSearchView(query) {
+  const normalizedQuery = normalizeSearch(query);
+  if (!normalizedQuery) return { type: "empty", sections: [], stickers: [] };
+
+  const sections = getSearchSections(normalizedQuery);
+  if (sections.length) return { type: "sections", sections, stickers: [] };
+
+  return { type: "stickers", sections: [], stickers: getSearchResults(query) };
+}
+
+function getSearchSections(normalizedQuery) {
+  const sections = getSections(state.stickers);
+  const groupSections = getSearchGroupSections(normalizedQuery, sections);
+  if (groupSections) return groupSections;
+
+  return sections.filter((section) => sectionMatchesSearch(section, normalizedQuery));
+}
+
+function getSearchGroupSections(normalizedQuery, sections) {
+  if (normalizedQuery !== "FWC" && !normalizedQuery.includes("GRUPO")) return null;
+
+  if (normalizedQuery === "FWC") {
+    return sections.filter((section) => normalizeSearch(section.grupo) === "FWC" || getSectionCode(section) === "FWC");
+  }
+
+  const groupCode = normalizedQuery.split(/\s+/).find((part) => /^[A-L]$/.test(part));
+  if (!groupCode) return [];
+  return sections.filter((section) => normalizeSearch(section.grupo) === `GRUPO ${groupCode}`);
+}
+
+function sectionMatchesSearch(section, normalizedQuery) {
+  const sectionCode = normalizeSearch(getSectionCode(section));
+  const fields = [section.nome, section.codigo, section.grupo, sectionCode].map(normalizeSearch).filter(Boolean);
+  return fields.some((field) => field === normalizedQuery || (normalizedQuery.length >= 3 && field.includes(normalizedQuery)));
+}
+
 function getSearchResults(query) {
   const normalizedQuery = normalizeSearch(query);
   if (!normalizedQuery) return [];
-
-  if (normalizedQuery.includes("GRUPO")) {
-    const groupCode = normalizedQuery.split(/\s+/).find((part) => /^[A-L]$/.test(part));
-    if (!groupCode) return [];
-    return state.stickers.filter((sticker) => normalizeSearch(sticker.grupo) === `GRUPO ${groupCode}`);
-  }
-
-  if (normalizedQuery === "FWC") {
-    return state.stickers.filter((sticker) => sticker.grupo === "FWC");
-  }
 
   return state.stickers.filter((sticker) => {
     const fields = [sticker.codigo, sticker.nome, sticker.secao, sticker.grupo].map(normalizeSearch);
