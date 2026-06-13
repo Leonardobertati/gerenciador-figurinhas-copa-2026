@@ -538,11 +538,17 @@ function getSectionThemeStyle(sectionOrCode) {
   const theme = SECTION_THEMES[code] || SECTION_THEMES.FWC;
   const primaryRgb = hexToRgb(theme.primary);
   const secondaryRgb = hexToRgb(theme.secondary);
+  const primaryLuminance = getColorLuminance(theme.primary);
+  const secondaryLuminance = getColorLuminance(theme.secondary);
+  const progressStart = secondaryLuminance > primaryLuminance ? theme.secondary : theme.primary;
+  const progressEnd = secondaryLuminance > primaryLuminance ? theme.primary : theme.secondary;
   return [
     `--section-accent:${theme.primary}`,
     `--section-accent-rgb:${primaryRgb}`,
     `--section-secondary:${theme.secondary}`,
     `--section-secondary-rgb:${secondaryRgb}`,
+    `--section-progress-start:${progressStart}`,
+    `--section-progress-end:${progressEnd}`,
     `--section-badge-text:${getReadableTextColor(theme.secondary)}`
   ].join(";");
 }
@@ -560,9 +566,13 @@ function hexToRgb(hex) {
 }
 
 function getReadableTextColor(hex) {
-  const [red, green, blue] = hexToRgb(hex).split(",").map(Number);
-  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  const luminance = getColorLuminance(hex);
   return luminance > 150 ? "#111827" : "#ffffff";
+}
+
+function getColorLuminance(hex) {
+  const [red, green, blue] = hexToRgb(hex).split(",").map(Number);
+  return (red * 299 + green * 587 + blue * 114) / 1000;
 }
 
 function iconImage(src, alt, className) {
@@ -1357,7 +1367,9 @@ function getPercent(value, total) {
 }
 
 function progressBar(percent, tone = "blue") {
-  return `<div class="progress ${tone}"><span style="width:${Math.min(100, percent)}%"></span></div>`;
+  const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
+  const stateClass = safePercent === 0 ? "empty" : safePercent === 100 ? "complete" : "";
+  return `<div class="progress ${tone} ${stateClass}"><span style="width:${safePercent}%"></span></div>`;
 }
 
 function statItem(value, label, tone) {

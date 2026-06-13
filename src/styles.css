@@ -213,11 +213,24 @@ p {
 }
 
 .progress.section {
-  background: rgba(var(--section-accent-rgb, 52, 120, 255), 0.2);
+  background: #cbd5e1;
 }
 
 .progress.section span {
-  background: linear-gradient(90deg, var(--section-accent, var(--blue)), var(--section-secondary, var(--gold)));
+  background: linear-gradient(
+    90deg,
+    var(--section-progress-start, var(--section-secondary, var(--gold))),
+    var(--section-progress-end, var(--section-accent, var(--blue)))
+  );
+  box-shadow: 0 0 12px rgba(var(--section-accent-rgb, 52, 120, 255), 0.3);
+}
+
+.progress.section.empty span {
+  box-shadow: none;
+}
+
+.progress.section.complete span {
+  box-shadow: 0 0 16px rgba(var(--section-accent-rgb, 52, 120, 255), 0.45);
 }
 
 .progress.gold span {
