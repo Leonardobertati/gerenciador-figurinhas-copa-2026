@@ -704,6 +704,8 @@ svg {
   --section-secondary: var(--gold);
   --section-secondary-rgb: 250, 204, 21;
   --section-badge-text: #111827;
+  content-visibility: auto;
+  contain-intrinsic-size: 620px;
   padding: 26px 0 34px;
   border-top: 1px solid rgba(var(--section-accent-rgb), 0.28);
 }
@@ -925,6 +927,8 @@ svg {
   --section-secondary: var(--gold);
   --section-secondary-rgb: 250, 204, 21;
   --section-badge-text: #111827;
+  content-visibility: auto;
+  contain-intrinsic-size: 118px;
   display: grid;
   grid-template-columns: 70px 1fr auto;
   gap: 16px;

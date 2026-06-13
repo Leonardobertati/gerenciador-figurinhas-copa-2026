@@ -13,6 +13,7 @@ export class StickerStore {
       : null;
     this.channel = null;
     this.sessionId = DEFAULT_ALBUM_ID;
+    this.saveQueue = Promise.resolve();
   }
 
   get mode() {
@@ -133,20 +134,32 @@ export class StickerStore {
 
   async saveSticker(sticker) {
     this.ensureClient();
-    const { error } = await this.client.from("sticker_status").upsert(
-      serializeStatus(sticker, this.sessionId),
-      { onConflict: "session_id,codigo" }
-    );
-    if (error) throw error;
+    const row = serializeStatus(sticker, this.sessionId);
+    return this.enqueueSave(async () => {
+      const { error } = await this.client.from("sticker_status").upsert(
+        row,
+        { onConflict: "session_id,codigo" }
+      );
+      if (error) throw error;
+    });
   }
 
   async saveStickers(stickers) {
     this.ensureClient();
     const rows = stickers.map((sticker) => serializeStatus(sticker, this.sessionId));
-    const { error } = await this.client
-      .from("sticker_status")
-      .upsert(rows, { onConflict: "session_id,codigo" });
-    if (error) throw error;
+    return this.enqueueSave(async () => {
+      const { error } = await this.client
+        .from("sticker_status")
+        .upsert(rows, { onConflict: "session_id,codigo" });
+      if (error) throw error;
+    });
+  }
+
+  // Keeps rapid local edits persisted in the same order the user made them.
+  enqueueSave(task) {
+    const run = this.saveQueue.catch(() => {}).then(task);
+    this.saveQueue = run;
+    return run;
   }
 
   async fetchStatusRows(sessionId = this.sessionId) {

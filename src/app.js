@@ -12,6 +12,8 @@ import {
 } from "./storage.js";
 
 const TOTAL_STICKERS = 994;
+const SEARCH_RENDER_DELAY = 90;
+const SEARCH_MIN_STICKER_CHARS = 2;
 const store = new StickerStore();
 
 const SECTION_THEMES = {
@@ -84,6 +86,16 @@ const app = document.querySelector("#app");
 const toast = document.querySelector("#toast");
 const sheetRoot = document.querySelector("#sheet-root");
 let remoteRenderTimer = null;
+let searchRenderTimer = null;
+let searchSelection = null;
+let stickerPress = {
+  timer: null,
+  code: "",
+  longPress: false,
+  card: null
+};
+const stickerSearchCache = new Map();
+const sectionSearchCache = new Map();
 
 init();
 
@@ -101,14 +113,22 @@ async function init() {
   window.addEventListener("hashchange", syncRouteFromHash);
   document.addEventListener("click", handleDocumentClick);
   document.addEventListener("input", handleDocumentInput);
+  document.addEventListener("pointerdown", handleStickerPointerDown);
+  document.addEventListener("pointerup", clearStickerPressTimer);
+  document.addEventListener("pointercancel", resetStickerPress);
+  document.addEventListener("pointerout", handleStickerPointerOut);
   syncRouteFromHash();
   registerServiceWorker();
 }
 
 function handleRemoteStatusChange(row) {
   if (row.session_id && row.session_id !== state.activeAlbumId) return;
+  const current = findSticker(row.codigo);
+  if (!current) return;
+  const next = applyStatusRow(current, row);
+  if (Boolean(current.colada) === Boolean(next.colada) && getRepeated(current) === getRepeated(next)) return;
   state.stickers = state.stickers.map((sticker) =>
-    sticker.codigo === row.codigo ? applyStatusRow(sticker, row) : sticker
+    sticker.codigo === row.codigo ? next : sticker
   );
   if (remoteRenderTimer) return;
   remoteRenderTimer = window.setTimeout(() => {
@@ -140,7 +160,6 @@ function render() {
   };
 
   app.innerHTML = (views[state.route] || renderDashboard)();
-  attachStickerCardEvents();
 }
 
 function renderDashboard() {
@@ -278,7 +297,7 @@ function renderSearch() {
       <section class="search-panel">
         <label class="search-box">
           ${icon("search")}
-          <input id="search-input" value="${escapeHtml(state.query)}" placeholder="Digite: MEX1, grupo A, FWC, CC14" autocomplete="off" />
+          <input id="search-input" value="${escapeAttr(state.query)}" placeholder="Digite: MEX1, grupo A, FWC, CC14" autocomplete="off" />
         </label>
       </section>
       ${renderSearchContent(searchView, term)}
@@ -434,7 +453,13 @@ function renderSearchResult(sticker) {
   const themeStyle = getStickerThemeStyle(sticker);
   return `
     <article class="search-result" style="${escapeAttr(themeStyle)}">
-      <button class="sticker-card ${owned ? "owned" : ""} ${repeated ? "repeated" : ""}" data-code="${sticker.codigo}" data-context="search" style="${escapeAttr(themeStyle)}">
+      <button
+        class="sticker-card ${owned ? "owned" : ""} ${repeated ? "repeated" : ""}"
+        data-code="${sticker.codigo}"
+        data-context="search"
+        style="${escapeAttr(themeStyle)}"
+        aria-label="Figurinha ${sticker.codigo}, colada ${owned ? "sim" : "não"}, repetidas ${repeated}"
+      >
         <span class="sticker-code">${sticker.codigo}</span>
         ${sticker.nome ? `<span class="sticker-name">${escapeHtml(sticker.nome)}</span>` : ""}
         ${repeated ? `<span class="repeat-badge">+${repeated}</span>` : ""}
@@ -450,6 +475,7 @@ function renderSearchResult(sticker) {
 
 function renderSearchContent(searchView, term) {
   if (!term) return emptyState("Busque pelo código da figurinha ou pelo país.");
+  if (searchView.type === "too-short") return emptyState("Digite pelo menos 2 caracteres para buscar figurinhas.");
   if (searchView.type === "sections") {
     return searchView.sections.map((section) => renderQuickSection(section, "search-section")).join("");
   }
@@ -466,14 +492,15 @@ function getSearchView(query) {
   const normalizedQuery = normalizeSearch(query);
   if (!normalizedQuery) return { type: "empty", sections: [], stickers: [] };
 
-  const sections = getSearchSections(normalizedQuery);
-  if (sections.length) return { type: "sections", sections, stickers: [] };
+  const sections = getSections(state.stickers);
+  const matchedSections = getSearchSections(normalizedQuery, sections);
+  if (matchedSections.length) return { type: "sections", sections: matchedSections, stickers: [] };
+  if (normalizedQuery.length < SEARCH_MIN_STICKER_CHARS) return { type: "too-short", sections: [], stickers: [] };
 
-  return { type: "stickers", sections: [], stickers: getSearchResults(query) };
+  return { type: "stickers", sections: [], stickers: getSearchResults(normalizedQuery) };
 }
 
-function getSearchSections(normalizedQuery) {
-  const sections = getSections(state.stickers);
+function getSearchSections(normalizedQuery, sections) {
   const groupSections = getSearchGroupSections(normalizedQuery, sections);
   if (groupSections) return groupSections;
 
@@ -493,19 +520,36 @@ function getSearchGroupSections(normalizedQuery, sections) {
 }
 
 function sectionMatchesSearch(section, normalizedQuery) {
-  const sectionCode = normalizeSearch(getSectionCode(section));
-  const fields = [section.nome, section.codigo, section.grupo, sectionCode].map(normalizeSearch).filter(Boolean);
+  const fields = getSectionSearchFields(section);
   return fields.some((field) => field === normalizedQuery || (normalizedQuery.length >= 3 && field.includes(normalizedQuery)));
 }
 
-function getSearchResults(query) {
-  const normalizedQuery = normalizeSearch(query);
-  if (!normalizedQuery) return [];
+function getSearchResults(normalizedQuery) {
+  return state.stickers.filter((sticker) => getStickerSearchText(sticker).includes(normalizedQuery));
+}
 
-  return state.stickers.filter((sticker) => {
-    const fields = [sticker.codigo, sticker.nome, sticker.secao, sticker.grupo].map(normalizeSearch);
-    return fields.some((field) => field.includes(normalizedQuery));
-  });
+function getStickerSearchText(sticker) {
+  const cached = stickerSearchCache.get(sticker.codigo);
+  if (cached) return cached;
+
+  const text = [sticker.codigo, sticker.nome, sticker.secao, sticker.grupo]
+    .map(normalizeSearch)
+    .filter(Boolean)
+    .join(" ");
+  stickerSearchCache.set(sticker.codigo, text);
+  return text;
+}
+
+function getSectionSearchFields(section) {
+  const key = `${section.nome}|${section.codigo}|${section.grupo}`;
+  const cached = sectionSearchCache.get(key);
+  if (cached) return cached;
+
+  const fields = [section.nome, section.codigo, section.grupo, getSectionCode(section)]
+    .map(normalizeSearch)
+    .filter(Boolean);
+  sectionSearchCache.set(key, fields);
+  return fields;
 }
 
 function getSectionIcon(section) {
@@ -644,7 +688,11 @@ function bottomNav() {
 
 async function handleDocumentClick(event) {
   const target = event.target.closest("[data-action]");
-  if (!target) return;
+  if (!target) {
+    const card = event.target.closest(".sticker-card");
+    if (card) handleStickerCardClick(event, card);
+    return;
+  }
 
   const action = target.dataset.action;
   if (action === "nav") navigate(target.dataset.route);
@@ -689,57 +737,97 @@ async function handleDocumentClick(event) {
   if (action === "clear-section") clearSection(target.dataset.section);
   if (action === "sticker-update") {
     const code = target.dataset.code;
-    await updateSticker(code, target.dataset.operation);
+    const save = updateSticker(code, target.dataset.operation);
     openStickerMenu(code);
+    await save;
   }
 }
 
 function handleDocumentInput(event) {
   if (event.target.id === "search-input") {
     state.query = event.target.value;
-    render();
-    const input = document.querySelector("#search-input");
-    input?.focus();
-    input?.setSelectionRange(state.query.length, state.query.length);
+    searchSelection = {
+      start: event.target.selectionStart ?? state.query.length,
+      end: event.target.selectionEnd ?? state.query.length
+    };
+    scheduleSearchRender();
   }
 }
 
-function attachStickerCardEvents() {
-  document.querySelectorAll(".sticker-card").forEach((card) => {
-    let timer = null;
-    let longPress = false;
-    const code = card.dataset.code;
+function scheduleSearchRender() {
+  window.clearTimeout(searchRenderTimer);
+  searchRenderTimer = window.setTimeout(() => {
+    searchRenderTimer = null;
+    if (state.route !== "search") return;
+    render();
+    restoreSearchFocus();
+  }, SEARCH_RENDER_DELAY);
+}
 
-    const start = () => {
-      longPress = false;
-      timer = window.setTimeout(() => {
-        longPress = true;
-        openStickerMenu(code);
-      }, 520);
-    };
-    const end = () => {
-      window.clearTimeout(timer);
-    };
+function restoreSearchFocus() {
+  const input = document.querySelector("#search-input");
+  if (!input) return;
+  const start = searchSelection?.start ?? state.query.length;
+  const end = searchSelection?.end ?? start;
+  input.focus();
+  input.setSelectionRange(start, end);
+}
 
-    card.addEventListener("pointerdown", start);
-    card.addEventListener("pointerup", end);
-    card.addEventListener("pointerleave", end);
-    card.addEventListener("click", (event) => {
-      event.preventDefault();
-      if (longPress) return;
-      const context = card.dataset.context;
-      const sticker = findSticker(code);
-      if (context === "repeated") {
-        openStickerMenu(code);
-        return;
-      }
-      if (!isOwned(sticker)) {
-        updateSticker(code, "own");
-      } else {
-        notify(`${code} já está no álbum. Segure para editar.`);
-      }
-    });
-  });
+function handleStickerPointerDown(event) {
+  const card = event.target.closest(".sticker-card");
+  if (!card || event.button > 0) return;
+
+  resetStickerPress();
+  stickerPress.code = card.dataset.code || "";
+  stickerPress.card = card;
+  stickerPress.longPress = false;
+  stickerPress.timer = window.setTimeout(() => {
+    stickerPress.longPress = true;
+    openStickerMenu(stickerPress.code);
+  }, 520);
+}
+
+function handleStickerPointerOut(event) {
+  if (!stickerPress.card) return;
+  if (event.target.closest(".sticker-card") !== stickerPress.card) return;
+  if (event.relatedTarget && stickerPress.card.contains(event.relatedTarget)) return;
+  clearStickerPressTimer();
+}
+
+function clearStickerPressTimer() {
+  window.clearTimeout(stickerPress.timer);
+  stickerPress.timer = null;
+}
+
+function resetStickerPress() {
+  clearStickerPressTimer();
+  stickerPress.code = "";
+  stickerPress.longPress = false;
+  stickerPress.card = null;
+}
+
+function handleStickerCardClick(event, card) {
+  event.preventDefault();
+  const code = card.dataset.code;
+  const wasLongPress = stickerPress.code === code && stickerPress.longPress;
+  resetStickerPress();
+  if (wasLongPress) return;
+
+  const context = card.dataset.context;
+  const sticker = findSticker(code);
+  if (!sticker) return;
+
+  if (context === "repeated") {
+    openStickerMenu(code);
+    return;
+  }
+
+  if (!isOwned(sticker)) {
+    updateSticker(code, "own");
+    return;
+  }
+
+  notify(`${code} já está no álbum. Segure para editar.`);
 }
 
 async function selectAlbum(albumId, message = "Álbum selecionado.") {
