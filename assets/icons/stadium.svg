@@ -1,43 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="bg" x1="20" x2="108" y1="16" y2="112" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="19" x2="110" y1="16" y2="116" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#334155"/>
       <stop offset=".55" stop-color="#111827"/>
       <stop offset="1" stop-color="#050816"/>
     </linearGradient>
-    <linearGradient id="facade" x1="20" x2="110" y1="35" y2="91" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f8fafc"/>
-      <stop offset=".45" stop-color="#cbd5e1"/>
+    <linearGradient id="roof" x1="20" x2="108" y1="35" y2="93" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".5" stop-color="#cbd5e1"/>
       <stop offset="1" stop-color="#64748b"/>
     </linearGradient>
-    <linearGradient id="pitch" x1="34" x2="96" y1="72" y2="105" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4ade80"/>
-      <stop offset="1" stop-color="#15803d"/>
+    <linearGradient id="stands" x1="38" x2="91" y1="50" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset=".55" stop-color="#12306f"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="pitch" x1="47" x2="82" y1="67" y2="89" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#65d67b"/>
+      <stop offset="1" stop-color="#16803c"/>
     </linearGradient>
   </defs>
   <rect width="128" height="128" rx="32" fill="url(#bg)"/>
-  <path d="M17 66c6-25 25-40 47-40s41 15 47 40v30H17Z" fill="#e2e8f0"/>
-  <path d="M23 66c6-21 22-33 41-33s35 12 41 33v22H23Z" fill="url(#facade)"/>
-  <path d="M30 65c6-16 19-24 34-24s28 8 34 24v12H30Z" fill="#0f172a"/>
-  <path d="M36 64c5-11 16-17 28-17s23 6 28 17v7H36Z" fill="#dbeafe"/>
-  <path d="M40 65c5-8 13-12 24-12s19 4 24 12" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
-  <path d="M23 75h82v16H23Z" fill="#cbd5e1"/>
-  <path d="M29 78h70v4H29zm0 7h70v4H29" stroke="#64748b" stroke-width="2" opacity=".9"/>
-  <ellipse cx="64" cy="93" rx="42" ry="22" fill="#e5e7eb"/>
-  <ellipse cx="64" cy="94" rx="31" ry="14" fill="url(#pitch)"/>
-  <path d="M43 94h42M64 81v25" stroke="#bbf7d0" stroke-width="2.6" stroke-linecap="round" opacity=".85"/>
-  <path d="M53 88c6-4 16-4 22 0" fill="none" stroke="#bbf7d0" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
-  <g fill="#f8fafc">
-    <rect x="20" y="61" width="8" height="33" rx="3"/>
-    <rect x="100" y="61" width="8" height="33" rx="3"/>
+  <path d="M19 42c10-13 25-20 45-20s35 7 45 20c8 11 10 31 3 43-8 14-25 21-48 21s-40-7-48-21c-7-12-5-32 3-43Z" fill="#0b1220" opacity=".6"/>
+  <path d="M21 39c10-12 25-18 43-18s33 6 43 18c8 10 10 29 3 41-8 13-24 20-46 20s-38-7-46-20c-7-12-5-31 3-41Z" fill="url(#roof)"/>
+  <path d="M30 45c8-9 20-14 34-14s26 5 34 14c6 7 8 21 3 29-6 10-19 15-37 15s-31-5-37-15c-5-8-3-22 3-29Z" fill="#f8fafc"/>
+  <path d="M37 50c7-7 16-10 27-10s20 3 27 10c4 5 5 15 2 21-5 7-15 11-29 11s-24-4-29-11c-3-6-2-16 2-21Z" fill="url(#stands)"/>
+  <path d="M46 61c5-5 11-7 18-7s13 2 18 7c3 4 3 11 0 15-4 5-10 7-18 7s-14-2-18-7c-3-4-3-11 0-15Z" fill="#0f172a"/>
+  <path d="M51 66c4-3 8-4 13-4s9 1 13 4c2 3 2 7 0 10-3 3-7 5-13 5s-10-2-13-5c-2-3-2-7 0-10Z" fill="url(#pitch)"/>
+  <path d="M54 72h20M64 64v15" stroke="#bbf7d0" stroke-width="1.8" stroke-linecap="round" opacity=".82"/>
+  <path d="M28 43c10 8 22 12 36 12s26-4 36-12M25 78c10-8 23-12 39-12s29 4 39 12" fill="none" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <g stroke="#64748b" stroke-width="2" stroke-linecap="round" opacity=".85">
+    <path d="M36 33v12M46 28v14M57 25v13M71 25v13M82 28v14M92 33v12"/>
+    <path d="M31 83v9M42 89v10M55 92v11M73 92v11M86 89v10M97 83v9"/>
   </g>
+  <g fill="#dbeafe" opacity=".9">
+    <rect x="16" y="58" width="9" height="23" rx="4"/>
+    <rect x="103" y="58" width="9" height="23" rx="4"/>
+    <rect x="58" y="18" width="12" height="8" rx="4"/>
+  </g>
+  <path d="M21 40c10 12 24 18 43 18s33-6 43-18" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity=".72"/>
+  <path d="M34 93c8 5 18 7 30 7s22-2 30-7" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".58"/>
   <g fill="#facc15">
-    <circle cx="32" cy="39" r="2.6"/>
-    <circle cx="45" cy="32" r="2.6"/>
-    <circle cx="64" cy="29" r="3"/>
-    <circle cx="83" cy="32" r="2.6"/>
-    <circle cx="96" cy="39" r="2.6"/>
+    <circle cx="25" cy="39" r="2"/>
+    <circle cx="103" cy="39" r="2"/>
+    <circle cx="21" cy="85" r="2"/>
+    <circle cx="107" cy="85" r="2"/>
   </g>
-  <path d="M22 67c9 7 23 11 42 11s33-4 42-11" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity=".75"/>
-  <path d="M34 50c8-8 18-12 30-12s22 4 30 12" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".65"/>
 </svg>

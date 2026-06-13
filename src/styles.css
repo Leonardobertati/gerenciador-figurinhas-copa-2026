@@ -114,8 +114,9 @@ p {
 }
 
 .hero-card h1 {
-  max-width: 10ch;
-  font-size: clamp(2.4rem, 14vw, 4.4rem);
+  max-width: min(100%, 14ch);
+  overflow-wrap: anywhere;
+  font-size: clamp(2.25rem, 12vw, 4.2rem);
   line-height: 0.98;
   text-shadow: 0 8px 22px rgba(0, 0, 0, 0.36);
 }

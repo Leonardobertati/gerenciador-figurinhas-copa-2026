@@ -146,13 +146,14 @@ function render() {
 function renderDashboard() {
   const stats = getStats();
   const percent = getPercent(stats.coladas, TOTAL_STICKERS);
+  const activeAlbum = getActiveAlbum();
   return `
     <main class="screen">
       <section class="hero-card">
         <img class="hero-mascots" src="./assets/mascots-2026-cutout.png" alt="" aria-hidden="true" />
         <div class="hero-copy">
           <span class="eyebrow">FIFA World Cup 2026</span>
-          <h1>Meu Álbum</h1>
+          <h1>${escapeHtml(activeAlbum.nome)}</h1>
           <p class="hero-hosts">Canad&aacute; &middot; Estados Unidos &middot; M&eacute;xico</p>
         </div>
         <div class="trophy" aria-hidden="true">🏆</div>
@@ -165,8 +166,6 @@ function renderDashboard() {
           <p>${stats.coladas} de ${TOTAL_STICKERS} figurinhas</p>
         </div>
       </section>
-
-      ${renderAlbumManager()}
 
       <section class="stats-card">
         ${statItem(stats.coladas, "Coladas", "blue")}
@@ -197,6 +196,8 @@ function renderDashboard() {
           </button>
         </div>
       </section>
+
+      ${renderAlbumManager()}
 
       <section class="reset-panel">
         <h2>Reset</h2>
@@ -251,9 +252,10 @@ function renderAlbumOption(album) {
 }
 
 function renderAlbum() {
+  const activeAlbum = getActiveAlbum();
   return `
     <main class="screen">
-      ${topBar("Meu Álbum", true)}
+      ${topBar(activeAlbum.nome, true)}
       ${viewSwitcher()}
       ${albumSummaryStrip()}
       ${
